@@ -5,9 +5,9 @@
   xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="TaskPaneApp">
   <Id>bd21a12d-5289-47b1-8774-46a6218378ac</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Proposal Builder spike</ProviderName>
+  <ProviderName>Pitchcraft</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Proposal Builder"/>
+  <DisplayName DefaultValue="Pitchcraft"/>
   <Description DefaultValue="Hello-world test of a PowerPoint add-in."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
@@ -73,14 +73,14 @@
         <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
       </bt:Urls>
       <bt:ShortStrings>
-        <bt:String id="GetStarted.Title" DefaultValue="Proposal Builder hello world loaded"/>
-        <bt:String id="CommandsGroup.Label" DefaultValue="Proposal Builder"/>
+        <bt:String id="GetStarted.Title" DefaultValue="Pitchcraft is ready"/>
+        <bt:String id="CommandsGroup.Label" DefaultValue="Pitchcraft"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Open pane"/>
-        <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Proposal Builder"/>
+        <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Pitchcraft"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Go to the Home tab and choose 'Open pane'."/>
-        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open the Proposal Builder hello-world pane"/>
+        <bt:String id="TaskpaneButton.SupertipText" DefaultValue="Open Pitchcraft: build proposal templates"/>
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>

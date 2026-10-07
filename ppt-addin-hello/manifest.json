@@ -7,14 +7,14 @@
     "defaultLanguageTag": "en-us"
   },
   "developer": {
-    "name": "Proposal Builder spike",
+    "name": "Pitchcraft",
     "websiteUrl": "https://learn.microsoft.com/office/dev/add-ins/overview/office-add-in-code-samples",
     "privacyUrl": "https://learn.microsoft.com/office/dev/add-ins/overview/office-add-in-code-samples",
     "termsOfUseUrl": "https://learn.microsoft.com/office/dev/add-ins/overview/office-add-in-code-samples"
   },
   "name": {
-    "short": "Proposal Builder",
-    "full": "Proposal Builder (hello world)"
+    "short": "Pitchcraft",
+    "full": "Pitchcraft – proposal templates"
   },
   "description": {
     "short": "Hello-world test of a PowerPoint add-in.",
@@ -100,7 +100,7 @@
               "groups": [
                 {
                   "id": "CommandsGroup",
-                  "label": "Proposal Builder",
+                  "label": "Pitchcraft",
                   "icons": [
                     {
                       "size": 16,
@@ -135,8 +135,8 @@
                         }
                       ],
                       "supertip": {
-                        "title": "Proposal Builder",
-                        "description": "Open the Proposal Builder hello-world pane"
+                        "title": "Pitchcraft",
+                        "description": "Open Pitchcraft: build proposal templates"
                       },
                       "actionId": "OpenTaskPane",
                       "overriddenByRibbonApi": false,
@@ -173,7 +173,7 @@
               "desktop"
             ]
           },
-          "title": "Proposal Builder hello world loaded",
+          "title": "Pitchcraft is ready",
           "description": "Go to the Home tab and choose 'Open pane'.",
           "learnMoreUrl": "http://go.microsoft.com/fwlink/?LinkId=276812"
         }

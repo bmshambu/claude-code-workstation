@@ -3,53 +3,1349 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Proposal Builder</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pitchcraft</title>
     <!-- Office JavaScript API -->
     <script type="text/javascript" src="https://officeapis.public.onecdn.static.microsoft/1/office.js"></script>
     <style>
-        body { font-family: "Segoe UI", sans-serif; font-size: 13px; margin: 12px; }
-        h1 { font-size: 16px; margin: 0 0 4px; }
-        p { margin: 4px 0 12px; color: #555; }
-        button { display: block; width: 100%; margin: 6px 0; padding: 7px; font-size: 13px; cursor: pointer; }
-        pre { background: #f3f3f3; padding: 8px; white-space: pre-wrap; font-size: 12px; min-height: 60px; }
+        /* Colours are tokens so the pane can follow PowerPoint's own theme:
+           Office 2021's dark grey and black themes would otherwise leave a
+           white pane glaring next to the slide. */
+        :root {
+            --bg: #f5f6f8;
+            --card: #ffffff;
+            --border: #e1e4ea;
+            --text: #1b1f27;
+            --muted: #5f6775;
+            --accent: #00338d;
+            --accent-2: #0091da;
+            --accent-soft: #e6eefb;
+            --ok: #107c41;
+            --ok-soft: #e7f4ec;
+            --warn: #9a5b00;
+            --warn-soft: #fff4e0;
+            --err: #c4314b;
+            --err-soft: #fbe9ec;
+            --chip: #eef1f6;
+            --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+        }
+        :root[data-theme="dark"] {
+            --bg: #1f1f1f;
+            --card: #2b2b2b;
+            --border: #3d3d3d;
+            --text: #f1f1f1;
+            --muted: #a8adb7;
+            --accent: #4f8ff7;
+            --accent-2: #3fb6f0;
+            --accent-soft: #23314a;
+            --ok: #54c27c;
+            --ok-soft: #1f3528;
+            --warn: #f0b45a;
+            --warn-soft: #3a2f1e;
+            --err: #f2788d;
+            --err-soft: #3d2328;
+            --chip: #353a42;
+            --shadow: none;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0 12px 70px;
+            font-family: "Segoe UI", system-ui, sans-serif; font-size: 13px;
+            background: var(--bg); color: var(--text);
+        }
+
+        header {
+            display: flex; align-items: center; gap: 10px;
+            margin: 0 -12px; padding: 14px 12px 12px;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+            color: #fff;
+        }
+        .logo {
+            width: 34px; height: 34px; border-radius: 8px; flex: none;
+            display: grid; place-items: center;
+            background: rgba(255, 255, 255, .18); font-weight: 700; font-size: 15px;
+        }
+        header h1 { margin: 0; font-size: 15px; font-weight: 600; }
+        header .sub { font-size: 11.5px; opacity: .85; }
+        .pill {
+            margin-left: auto; padding: 3px 8px; border-radius: 999px;
+            font-size: 11px; background: rgba(255, 255, 255, .18); white-space: nowrap;
+        }
+        .pill::before {
+            content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px;
+            border-radius: 50%; background: #ffd75e; vertical-align: 1px;
+        }
+        .pill.ok::before { background: #6ee7a0; }
+        .pill.off::before { background: #ff8a9b; }
+
+        nav {
+            display: flex; margin: 0 -12px 12px; padding: 0 8px;
+            background: var(--card); border-bottom: 1px solid var(--border);
+        }
+        nav button {
+            flex: 1 1 auto; border: none; border-radius: 0; background: none; padding: 10px 3px 8px; font-size: 12px;
+            color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent;
+        }
+        nav button:hover { background: none; color: var(--text); }
+        nav button.on { color: var(--accent); border-bottom-color: var(--accent); }
+        nav .dot { display: none; width: 6px; height: 6px; border-radius: 50%; background: var(--warn); margin-left: 4px; vertical-align: 2px; }
+        nav .dot.on { display: inline-block; }
+        .tab { display: none; }
+        .tab.on { display: block; }
+
+        .libbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .libbar label { margin: 0; white-space: nowrap; }
+
+        .card {
+            background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+            padding: 12px; margin-bottom: 12px; box-shadow: var(--shadow);
+        }
+        .card h2 {
+            margin: 0 0 10px; font-size: 13px; font-weight: 600;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .card h2 .step {
+            width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center;
+            background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700;
+        }
+        .card .intro { margin: -4px 0 10px; color: var(--muted); font-size: 12px; }
+        label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 4px; }
+        select, input[type=text] {
+            width: 100%; padding: 6px 8px; border-radius: 6px; font: inherit;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+        }
+        select:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+
+        .answers { display: flex; flex-wrap: wrap; gap: 5px; margin: 10px 0 4px; min-height: 22px; }
+        .chip {
+            display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--chip);
+            font-size: 11.5px; color: var(--text); max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .chip b { color: var(--muted); font-weight: 500; margin-right: 3px; }
+        .chip.no { opacity: .55; text-decoration: line-through; }
+
+        button {
+            font: inherit; cursor: pointer; border-radius: 6px;
+            border: 1px solid var(--border); background: var(--card); color: var(--text);
+            padding: 6px 10px; transition: background .12s, transform .05s;
+        }
+        button:hover { background: var(--chip); }
+        button:active { transform: translateY(1px); }
+        button:disabled { opacity: .5; cursor: default; }
+        button.primary {
+            border: none; color: #fff; font-weight: 600;
+            background: linear-gradient(120deg, var(--accent), var(--accent-2));
+        }
+        button.primary:hover { filter: brightness(1.08); background: linear-gradient(120deg, var(--accent), var(--accent-2)); }
+        button.wide { width: 100%; margin-top: 10px; padding: 9px; }
+        button.link { border: none; background: none; color: var(--accent); padding: 2px 4px; }
+        button.link:hover { text-decoration: underline; background: none; }
+        button.icon { border: none; background: none; padding: 2px 6px; color: var(--muted); }
+        button.icon:hover { color: var(--err); background: none; }
+        .hint { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; }
+        .spinner {
+            display: none; width: 13px; height: 13px; margin-right: 6px; vertical-align: -2px;
+            border: 2px solid rgba(255, 255, 255, .45); border-top-color: #fff; border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        .busy .spinner { display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #status { display: none; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+        #status.show { display: block; }
+        #status.info { background: var(--accent-soft); }
+        #status.ok { background: var(--ok-soft); }
+        #status.err { background: var(--err-soft); }
+        #status .title { font-weight: 600; margin-bottom: 2px; }
+        #status.ok .title { color: var(--ok); }
+        #status.err .title { color: var(--err); }
+        #status .body { color: var(--text); word-break: break-word; }
+        #status pre, .mono {
+            margin: 6px 0 0; white-space: pre-wrap; font-size: 11.5px;
+            font-family: Consolas, monospace;
+        }
+
+        .blocks { list-style: none; margin: 0; padding: 0; }
+        .blocks li {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 2px; border-bottom: 1px solid var(--border);
+        }
+        .blocks li:last-child { border-bottom: none; }
+        .blocks .main { flex: 1; }
+        .n {
+            width: 22px; flex: none; text-align: right; color: var(--muted);
+            font-variant-numeric: tabular-nums; font-size: 12px;
+        }
+        .tag {
+            padding: 2px 7px; border-radius: 5px; font-size: 11.5px;
+            background: var(--accent-soft); color: var(--accent); font-family: Consolas, monospace;
+        }
+        .none { color: var(--muted); font-style: italic; font-size: 11.5px; }
+        .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .row h2 { margin: 0; }
+        .empty { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+
+        /* Rules list */
+        .rules { list-style: none; margin: 0; padding: 0; }
+        .rule { border-bottom: 1px solid var(--border); }
+        .rule:last-child { border-bottom: none; }
+        .rule .head { display: flex; align-items: center; gap: 6px; padding: 7px 0; }
+        .rule .grip { cursor: grab; color: var(--muted); user-select: none; padding: 0 2px; }
+        .rule .main { flex: 1; min-width: 0; }
+        .rule .title { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rule.drag { opacity: .4; }
+        .rule.over { box-shadow: 0 -2px 0 var(--accent-2) inset; }
+        .cond {
+            display: inline-block; margin-top: 3px; padding: 2px 8px; border-radius: 999px;
+            font-size: 11.5px; cursor: pointer; border: 1px dashed transparent;
+            background: var(--chip); color: var(--text); max-width: 100%;
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cond:hover { border-color: var(--accent-2); }
+        .cond.always { color: var(--muted); }
+        .cond.when { background: var(--warn-soft); color: var(--warn); }
+        .cond.custom { cursor: not-allowed; }
+        .badge { font-size: 10.5px; padding: 1px 6px; border-radius: 4px; background: var(--chip); color: var(--muted); margin-left: 4px; }
+        .editor {
+            margin: 0 0 10px 22px; padding: 10px; border-radius: 8px;
+            background: var(--bg); border: 1px solid var(--border);
+        }
+        .editor .clause { display: grid; grid-template-columns: 2fr 3fr; gap: 5px; padding: 8px 0; border-top: 1px dashed var(--border); }
+        .editor .clause > :not([data-op]):not([data-value]):not([data-text]) { grid-column: 1 / -1; }
+        .editor .clause:first-of-type { border-top: none; }
+        .editor .joiner { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+        .editor .checks { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+        .editor .checks label { display: flex; align-items: center; gap: 4px; margin: 0; color: var(--text); font-size: 12px; }
+        .editor .actions { display: flex; justify-content: space-between; margin-top: 8px; }
+        .out { opacity: .65; }
+
+        /* Placeholders */
+        .ph { border-bottom: 1px solid var(--border); padding: 8px 0; }
+        .ph:last-child { border-bottom: none; }
+        .ph .name { font-family: Consolas, monospace; font-weight: 600; }
+        .ph .where { font-size: 11.5px; color: var(--muted); }
+        .src { display: inline-block; margin-top: 3px; font-size: 11.5px; padding: 2px 8px; border-radius: 999px; cursor: pointer; background: var(--chip); }
+        .src.bad { background: var(--err-soft); color: var(--err); }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .newph { display: flex; gap: 6px; }
+        .newph input { flex: 1; }
+
+        /* Library and marking */
+        label.inline { display: flex; align-items: flex-start; gap: 6px; margin: 8px 0 0; color: var(--text); font-size: 12px; }
+        .report { margin-top: 10px; font-size: 12px; }
+        .report div { margin: 2px 0; }
+        .warnbox { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: var(--warn-soft); color: var(--warn); font-size: 12px; }
+
+        .savebar {
+            position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+            display: none; align-items: center; gap: 8px; padding: 10px 12px;
+            background: var(--card); border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, .08);
+        }
+        .savebar.on { display: flex; }
+        .savebar .msg { flex: 1; color: var(--warn); font-weight: 600; font-size: 12px; }
+
+        details.card summary {
+            cursor: pointer; font-weight: 600; list-style: none;
+            display: flex; justify-content: space-between;
+        }
+        details.card summary::after { content: "\25B8"; color: var(--muted); }
+        details.card[open] summary::after { content: "\25BE"; }
+        details .grid { display: grid; gap: 6px; margin-top: 10px; }
+        details .grid button { text-align: left; }
+        .apis { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        input[type=file] { font-size: 11.5px; color: var(--muted); max-width: 100%; }
     </style>
 </head>
 
 <body>
-    <h1>Proposal Builder</h1>
-    <p>Hello-world test. Each button checks one thing the real add-in will need.</p>
+    <header>
+        <div class="logo">P&#10022;</div>
+        <div>
+            <h1>Pitchcraft</h1>
+            <div class="sub" id="libname">ppt_gen_v3p1</div>
+        </div>
+        <span id="conn" class="pill">Connecting</span>
+    </header>
 
-    <button id="hello">1. Say hello into the selected text box</button>
-    <button id="tag">2. Tag the selected slide as block "cover"</button>
-    <button id="list">3. List every slide and its tags</button>
-    <button id="newdeck">4. Open a new presentation</button>
+    <nav>
+        <button data-tab="library" class="on">Library</button>
+        <button data-tab="questions">Questions</button>
+        <button data-tab="rules">Rules<span class="dot"></span></button>
+        <button data-tab="placeholders">Placeholders<span class="dot"></span></button>
+        <button data-tab="build">Build</button>
+    </nav>
 
-    <pre id="log">Waiting for PowerPoint...</pre>
+    <div class="libbar">
+        <label for="lib">Library</label>
+        <select id="lib"><option>Loading...</option></select>
+    </div>
+
+    <div id="status" role="status" aria-live="polite">
+        <div class="title"></div>
+        <div class="body"></div>
+    </div>
+
+    <!-- ============================= LIBRARY ============================= -->
+    <div id="tab-library" class="tab on">
+        <section class="card">
+            <h2>Import a library</h2>
+            <p class="intro">A .pptx of every slide a proposal can use. Its <span class="mono">{{placeholders}}</span> are read from the deck itself.</p>
+            <label for="up-pptx">Library .pptx</label><input type="file" id="up-pptx" accept=".pptx" />
+            <button id="up-open" class="link" style="margin-top:6px">or use the presentation open in PowerPoint</button>
+            <div id="up-source" class="hint"></div>
+            <div class="grid2" style="margin-top:8px">
+                <div><label for="up-name">Library id</label><input type="text" id="up-name" placeholder="audit_2026" /></div>
+                <div><label for="up-desc">Description</label><input type="text" id="up-desc" placeholder="optional" /></div>
+            </div>
+            <label class="inline"><input type="checkbox" id="up-over" /> Replace the library with this id (its rules, bindings and answer sets are kept)</label>
+            <label class="inline"><input type="checkbox" id="up-show" checked /> Show the library's slides in PowerPoint afterwards (the slides now open are removed)</label>
+            <button id="up-go" class="primary wide"><span class="spinner"></span><span class="label">Import library</span></button>
+            <div id="up-report"></div>
+        </section>
+
+        <section class="card">
+            <div class="row"><h2>Slides in this library</h2><span id="lib-count" class="hint"></span></div>
+            <ul id="libslides" class="blocks"></ul>
+        </section>
+
+    </div>
+
+    <!-- ============================== BUILD ============================== -->
+    <div id="tab-build" class="tab">
+        <section class="card">
+            <h2><span class="step">1</span>Build a proposal</h2>
+            <label for="payload">Answer set</label>
+            <select id="payload"><option>Loading answer sets...</option></select>
+            <div id="answers" class="answers"></div>
+            <button id="build" class="primary wide"><span class="spinner"></span><span class="label">Build &amp; insert slides</span></button>
+            <p class="hint">Uses the saved rules. Slides go in after the selected slide, each tagged with its block id.</p>
+        </section>
+
+        <section class="card">
+            <div class="row">
+                <h2><span class="step">2</span>Blocks in this deck</h2>
+                <button id="list">Refresh</button>
+            </div>
+            <ul id="blocks" class="blocks"></ul>
+            <p id="blocks-empty" class="empty">Press Refresh to read the slide tags.</p>
+        </section>
+
+        <details class="card">
+            <summary>Developer checks</summary>
+            <div id="apis" class="apis"></div>
+            <div class="grid">
+                <button id="hello">Say hello into the selected text box</button>
+                <button id="tag">Tag the selected slide as block "cover"</button>
+                <button id="newdeck">Open a new presentation</button>
+                <input type="file" id="deckfile" accept=".pptx" />
+                <button id="insert">Insert the chosen .pptx after the selected slide</button>
+            </div>
+        </details>
+    </div>
+
+    <!-- ============================ QUESTIONS ============================ -->
+    <div id="tab-questions" class="tab">
+        <section class="card">
+            <h2>Answer sets</h2>
+            <p class="intro">The JSON payloads proposals are built from. Their fields become the questions that rules and placeholders pick from. Upload several that differ.</p>
+            <ul id="qsets" class="blocks"></ul>
+            <label for="q-files" style="margin-top:8px">Add answer sets (.json; same name replaces)</label>
+            <input type="file" id="q-files" accept=".json,application/json" multiple />
+        </section>
+        <section class="card">
+            <div class="row"><h2>Questions</h2><span id="q-count" class="hint"></span></div>
+            <p class="intro">A question with the same answer in every set cannot tell proposals apart, so it is flagged. Not being answered counts as an answer.</p>
+            <div id="qfields"></div>
+        </section>
+    </div>
+
+    <!-- ============================== RULES ============================== -->
+    <div id="tab-rules" class="tab">
+        <section class="card">
+            <h2>Deck order and conditions</h2>
+            <p class="intro">Drag to reorder. Click a condition to change when that slide is included.</p>
+            <ul id="rules" class="rules"></ul>
+        </section>
+        <section class="card">
+            <h2>Not in the deck</h2>
+            <p class="intro">Library slides no rule uses. They appear in no proposal until added.</p>
+            <ul id="spare" class="rules"></ul>
+            <p id="spare-empty" class="empty">Every library slide is in the deck.</p>
+        </section>
+        <section class="card">
+            <h2>Try the rules</h2>
+            <p class="intro">Which slides an answer set gives, using the rules as edited here (before saving).</p>
+            <select id="try"></select>
+            <div id="tryout" class="answers"></div>
+        </section>
+    </div>
+
+    <!-- =========================== PLACEHOLDERS ========================== -->
+    <div id="tab-placeholders" class="tab">
+        <section class="card">
+            <h2>Mark text in PowerPoint</h2>
+            <p class="intro">Highlight words on a slide, pick the placeholder they become, and press Insert. The words are replaced by <span class="mono">{{Name}}</span>.</p>
+            <label for="phpick">Placeholder</label>
+            <div class="newph">
+                <select id="phpick"></select>
+                <button id="phinsert" class="primary">Insert</button>
+            </div>
+            <div id="phnew" style="display:none;margin-top:6px">
+                <label for="phname">New placeholder name</label>
+                <input type="text" id="phname" placeholder="e.g. ClientName" list="fieldnames" />
+            </div>
+            <datalist id="fieldnames"></datalist>
+            <div id="phpending" class="warnbox" style="display:none"></div>
+            <button id="phpublish" class="primary wide"><span class="spinner"></span><span class="label">Update library from PowerPoint</span></button>
+            <p class="hint">Sends the open presentation to the selected library (its rules are kept) and saves the placeholder sources below, in one step.</p>
+        </section>
+        <section class="card">
+            <h2>Where each value comes from</h2>
+            <p class="intro">Click a source to change it. Red ones produce nothing and would print as <span class="mono">{{Name}}</span>.</p>
+            <div id="phs"></div>
+        </section>
+    </div>
+
+    <div id="savebar" class="savebar">
+        <span class="msg">Unsaved template changes</span>
+        <button id="discard">Discard</button>
+        <button id="save" class="primary"><span class="spinner"></span><span class="label">Save</span></button>
+    </div>
 </body>
 
 <script>
-    const log = (msg) => { document.getElementById("log").textContent = msg; };
-    const fail = (err) => log("Error: " + (err && err.message ? err.message : err));
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    const errText = (err) => (err && err.message ? err.message : JSON.stringify(err));
+
+    // One status box for everything. Developer checks report plain text in
+    // a <pre>; the build and saves report richer HTML.
+    function status(kind, title, html) {
+        const box = $("status");
+        box.className = "show " + kind;
+        box.querySelector(".title").textContent = title;
+        box.querySelector(".body").innerHTML = html || "";
+    }
+    const log = (msg) => status("info", "Result", "<pre>" + esc(msg) + "</pre>");
+    const fail = (err) => status("err", "Something went wrong", esc(errText(err)));
+    window.addEventListener("unhandledrejection", (e) => fail(e.reason));
+
+    // Follow PowerPoint's theme where Office reports one; fall back to the OS.
+    function applyTheme() {
+        let dark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const theme = Office.context && Office.context.officeTheme;
+        if (theme && theme.bodyBackgroundColor) {
+            const hex = theme.bodyBackgroundColor.replace("#", "");
+            const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.substr(i, 2), 16));
+            dark = (0.299 * r + 0.587 * g + 0.114 * b) < 128;
+        }
+        document.documentElement.dataset.theme = dark ? "dark" : "light";
+    }
 
     Office.onReady((info) => {
         if (info.host !== Office.HostType.PowerPoint) {
-            log("Not running in PowerPoint (host: " + info.host + ").");
+            status("err", "Not running in PowerPoint", "Host: " + esc(info.host));
             return;
         }
-        // Which PowerPoint API versions this copy of PowerPoint supports.
-        // Tags need 1.3, reading the selected slide needs 1.5.
-        const sets = ["1.1", "1.3", "1.5", "1.8"].map(
-            (v) => v + ": " + (Office.context.requirements.isSetSupported("PowerPointApi", v) ? "yes" : "no")
-        );
-        log("Ready.\nPowerPointApi support\n" + sets.join("\n"));
+        applyTheme();
 
-        document.getElementById("hello").onclick = () => sayHello().catch(fail);
-        document.getElementById("tag").onclick = () => tagSlide().catch(fail);
-        document.getElementById("list").onclick = () => listSlides().catch(fail);
-        document.getElementById("newdeck").onclick = () => newDeck().catch(fail);
+        // Which PowerPoint API versions this copy of PowerPoint supports.
+        // Inserting slides needs 1.2, tags 1.3, reading the selected slide 1.5.
+        $("apis").innerHTML = ["1.1", "1.2", "1.3", "1.5", "1.8"].map((v) => {
+            const ok = Office.context.requirements.isSetSupported("PowerPointApi", v);
+            return "<span class='chip" + (ok ? "" : " no") + "'><b>API</b>" + v + "</span>";
+        }).join("");
+
+        document.querySelectorAll("nav button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
+        $("hello").onclick = () => sayHello().catch(fail);
+        $("tag").onclick = () => tagSlide().catch(fail);
+        $("list").onclick = () => listSlides().catch(fail);
+        $("newdeck").onclick = () => newDeck().catch(fail);
+        $("insert").onclick = () => insertDeck().catch(fail);
+        $("build").onclick = () => buildAndInsert().catch(fail).finally(() => busy("build", false));
+        $("payload").onchange = showAnswers;
+        $("try").onchange = tryRules;
+        $("lib").onchange = () => {
+            if (dirty && !confirm("Discard unsaved template changes?")) { $("lib").value = LIB; return; }
+            LIB = $("lib").value;
+            pendingPh = new Set();
+            loadLibrary().catch(fail);
+        };
+        wireLibrary();
+        wireQuestions();
+        $("save").onclick = () => saveTemplate().catch(fail).finally(() => busy("save", false));
+        $("discard").onclick = () => { restoreSaved(); status("info", "Changes discarded", ""); };
+        $("phinsert").onclick = () => insertPlaceholder().catch(fail);
+        $("phpick").onchange = renderPhPick;
+        $("phpublish").onclick = () => publishFromPowerPoint().catch(fail).finally(() => busy("phpublish", false));
+        wireRules();
+        wirePlaceholders();
+
+        loadLibraries().catch((err) => {
+            $("lib").innerHTML = "<option>Backend not reachable</option>";
+            $("payload").innerHTML = "<option>Backend not reachable</option>";
+            $("conn").className = "pill off";
+            $("conn").textContent = "Offline";
+            status("err", "Backend not reachable",
+                "Start ppt_gen_v3p1 on 127.0.0.1:8000, then reopen the pane.<br>" + esc(errText(err)));
+        });
     });
 
-    // 1. Writes into whatever text is selected. Click into a text box first.
+    function showTab(name) {
+        document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+        document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.id === "tab-" + name));
+    }
+
+    // ------------------------------------------------------------ backend
+    // All calls go through the dev server's proxy to ppt_gen_v3p1, so they
+    // are same-origin; the pane is https and the backend http.
+    let LIB = "demo";
+    let library = null;        // GET /api/libraries/{lib}: blocks, placeholders
+    let catalogue = {};        // field -> {kind, values, ...}
+    let payloads = [];         // [{label, answers}]
+    let saved = null;          // {deck, placeholders} as last loaded or saved
+    let deck = [];             // [{id, when}] being edited
+    let bindings = {};         // "{{Name}}" -> binding, being edited
+    let rawBlocks = {};        // rules.json blocks, for variant/multi-slide badges
+    let dirty = false;
+
+    async function api(path, body, method) {
+        const opts = body === undefined ? {} : {
+            method: method || "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        };
+        const res = await fetch(path, opts);
+        if (!res.ok) {
+            let msg = (await res.text()).slice(0, 600);
+            try { msg = JSON.parse(msg).detail || msg; } catch (e) { /* not JSON */ }
+            throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
+        return res;
+    }
+
+    async function loadLibraries(select) {
+        const libs = await (await api("/api/libraries")).json();
+        if (select) LIB = select;
+        $("lib").innerHTML = libs.map((l) => "<option value='" + esc(l.id) + "'>" + esc(l.name) +
+            " (" + l.slides + " slides)</option>").join("");
+        if (!libs.some((l) => l.id === LIB) && libs.length) LIB = libs[0].id;
+        $("lib").value = LIB;
+        $("conn").className = "pill ok";
+        $("conn").textContent = "Connected";
+        await loadLibrary();
+    }
+
+    async function loadLibrary() {
+        const base = "/api/libraries/" + LIB;
+        const [lib, fields, rules] = await Promise.all([
+            api(base).then((r) => r.json()),
+            api(base + "/fields").then((r) => r.json()),
+            api(base + "/rules").then((r) => r.json()),
+        ]);
+        library = lib;
+        rawBlocks = (rules.raw && rules.raw.blocks) || {};
+        saved = { deck: rules.deck || [], placeholders: rules.placeholders || {} };
+        $("libname").textContent = (lib.library.description || lib.library.name) + " · ppt_gen_v3p1";
+        applyFields(fields);
+        restoreSaved();
+        renderLibSlides();
+        const problems = (lib.problems || []).concat(lib.drift || []);
+        if (problems.length) status("err", "This library has problems", "<pre>" + esc(problems.join("\n")) + "</pre>");
+    }
+
+    function restoreSaved() {
+        deck = clone(saved.deck);
+        bindings = clone(saved.placeholders);
+        editing = null;
+        editingPh = null;
+        setDirty(false);
+        renderRules();
+        renderPlaceholders();
+    }
+
+    function setDirty(on) {
+        dirty = on;
+        $("savebar").classList.toggle("on", on);
+        document.querySelectorAll("nav .dot").forEach((d) => d.classList.toggle("on", on));
+    }
+
+    // Save rules and bindings together. The backend validates against the
+    // library, backs up the old rules.json, and reports what changed.
+    async function saveTemplate() {
+        busy("save", true);
+        const out = await (await api("/api/libraries/" + LIB + "/rules",
+            { deck: deck, placeholders: bindings }, "PUT")).json();
+        const c = out.changed || {};
+        const parts = [];
+        if (c.added && c.added.length) parts.push("added " + c.added.join(", "));
+        if (c.removed && c.removed.length) parts.push("removed " + c.removed.join(", "));
+        if (c.conditions && c.conditions.length) parts.push("new conditions on " + c.conditions.join(", "));
+        if (c.reordered) parts.push("reordered");
+        status("ok", "Template saved",
+            esc(parts.length ? parts.join("; ") : "Slide selection unchanged (bindings saved)") +
+            (out.backup ? "<br><span class='hint'>Previous version kept as " + esc(out.backup) + "</span>" : ""));
+        await loadLibrary();
+    }
+
+    function busy(id, on) {
+        const b = $(id);
+        b.disabled = on;
+        b.classList.toggle("busy", on);
+        const label = b.querySelector(".label");
+        if (!b.dataset.label) b.dataset.label = label.textContent;
+        const doing = { build: "Building...", "up-go": "Importing...", phpublish: "Updating library..." }[id] || "Saving...";
+        label.textContent = on ? doing : b.dataset.label;
+    }
+
+    // -------------------------------------------------------- conditions
+    // rules.json conditions: null/"always", {field, eq|ne|in|not_in|exists},
+    // {all: [...]}, {any: [...]}, {not: ...}. The editor draws a flat list
+    // of clauses joined by all/any. Anything else (not, nested groups) is
+    // shown but left alone: rewriting it as something simpler would
+    // silently change the rule.
+    const OPS = [["eq", "is"], ["ne", "is not"], ["in", "is one of"], ["not_in", "is not one of"],
+                 ["exists", "is answered"], ["missing", "is not answered"]];
+    const opLabel = (op) => (OPS.find((o) => o[0] === op) || [op, op])[1];
+
+    function leaf(c) {
+        if (!c || typeof c !== "object" || !c.field) return null;
+        if ("exists" in c) return { field: c.field, op: c.exists ? "exists" : "missing" };
+        for (const op of ["eq", "ne", "in", "not_in"])
+            if (op in c) return { field: c.field, op: op, value: c[op] };
+        return null;
+    }
+
+    function parseCond(when) {
+        if (when == null || when === "always" || (typeof when === "object" && !Object.keys(when).length))
+            return { mode: "always", clauses: [] };
+        const one = leaf(when);
+        if (one) return { mode: "all", clauses: [one] };
+        for (const mode of ["all", "any"]) {
+            if (when && Array.isArray(when[mode])) {
+                const clauses = when[mode].map(leaf);
+                if (clauses.every(Boolean)) return { mode: mode, clauses: clauses };
+            }
+        }
+        return { mode: "custom", clauses: [] };
+    }
+
+    function leafCond(c) {
+        if (c.op === "exists") return { field: c.field, exists: true };
+        if (c.op === "missing") return { field: c.field, exists: false };
+        const out = { field: c.field };
+        out[c.op] = c.value;
+        return out;
+    }
+
+    function toCond(model) {
+        if (model.mode === "always" || !model.clauses.length) return null;
+        if (model.clauses.length === 1) return leafCond(model.clauses[0]);
+        const out = {};
+        out[model.mode] = model.clauses.map(leafCond);
+        return out;
+    }
+
+    const show = (v) => v === true ? "Yes" : v === false ? "No" : v === "" ? "(blank)" : String(v);
+    function clauseText(c) {
+        if (c.op === "exists" || c.op === "missing") return c.field + " " + opLabel(c.op);
+        const v = Array.isArray(c.value) ? c.value.map(show).join(" / ") : show(c.value);
+        return c.field + " " + opLabel(c.op) + " " + v;
+    }
+    function condText(when) {
+        const m = parseCond(when);
+        if (m.mode === "always") return "Always";
+        if (m.mode === "custom") return "Custom rule: " + JSON.stringify(when);
+        const more = m.clauses.length - 1;
+        return "When " + clauseText(m.clauses[0]) + (more ? " · " + (m.mode === "all" ? "and" : "or") + " " + more + " more" : "");
+    }
+
+    function defaultClause() {
+        const field = Object.keys(catalogue).find((f) => catalogue[f].varies) || Object.keys(catalogue)[0] || "";
+        const vals = (catalogue[field] || {}).values || [];
+        return { field: field, op: "eq", value: vals.length ? vals[vals.length - 1] : "" };
+    }
+
+    // ------------------------------------------------------------ rules
+    let editing = null;        // block id whose condition editor is open
+    let dragFrom = null;
+
+    const blockInfo = (id) => (library.blocks || []).find((b) => b.id === id) || { id: id, title: "", number: "?" };
+
+    function renderRules() {
+        if (!library) return;
+        $("rules").innerHTML = deck.map((row, i) => ruleRow(row, i)).join("");
+        // A slide used as another block's variant (or one of its slides) is
+        // in the deck already, just not as a row of its own.
+        const inDeck = new Set(deck.map((r) => r.id));
+        deck.forEach((r) => {
+            const raw = rawBlocks[r.id] || {};
+            (raw.slides || []).concat((raw.variant && raw.variant.slides) || []).forEach((s) => inDeck.add(s));
+        });
+        const spare = (library.blocks || []).filter((b) => !inDeck.has(b.id));
+        $("spare").innerHTML = spare.map((b) =>
+            "<li class='rule out'><div class='head'><span class='n'>" + b.number + "</span>" +
+            "<div class='main'><span class='tag'>" + esc(b.id) + "</span>" +
+            "<div class='title'>" + esc(b.title) + "</div></div>" +
+            "<button class='link' data-add='" + esc(b.id) + "'>Add</button></div></li>").join("");
+        $("spare-empty").style.display = spare.length ? "none" : "block";
+        tryRules();
+    }
+
+    function ruleRow(row, i) {
+        const b = blockInfo(row.id);
+        const m = parseCond(row.when);
+        const raw = rawBlocks[row.id] || {};
+        const badges = (raw.variant ? "<span class='badge' title='Content swaps under a condition; kept as is'>variant</span>" : "") +
+            ((raw.slides || []).length > 1 ? "<span class='badge'>" + raw.slides.length + " slides</span>" : "");
+        const cls = m.mode === "always" ? "always" : m.mode === "custom" ? "custom" : "when";
+        return "<li class='rule' draggable='true' data-i='" + i + "'>" +
+            "<div class='head'><span class='grip' title='Drag to reorder'>☰</span>" +
+            "<span class='n'>" + (i + 1) + "</span>" +
+            "<div class='main'><span class='tag'>" + esc(row.id) + "</span>" + badges +
+            "<div class='title'>Library slide " + b.number + " · " + esc(b.title) + "</div>" +
+            "<span class='cond " + cls + "' data-edit='" + esc(row.id) + "'>" + esc(condText(row.when)) + "</span></div>" +
+            "<button class='icon' title='Take out of the deck' data-remove='" + i + "'>✕</button></div>" +
+            (editing === row.id && m.mode !== "custom" ? editor(row, m) : "") +
+            "</li>";
+    }
+
+    function valueOptions(field, current) {
+        const vals = ((catalogue[field] || {}).values || []).slice();
+        if (current !== undefined && !vals.some((v) => JSON.stringify(v) === JSON.stringify(current))) vals.push(current);
+        return vals;
+    }
+
+    function editor(row, m) {
+        const fields = Object.keys(catalogue);
+        const clauses = m.mode === "always" ? [] : m.clauses;
+        let html = "<div class='editor'>";
+        html += "<label>Include this slide</label><select data-mode>" +
+            [["always", "Always"], ["all", "When all of these are true"], ["any", "When any one of these is true"]]
+                .map((o) => "<option value='" + o[0] + "'" + (m.mode === o[0] ? " selected" : "") + ">" + o[1] + "</option>").join("") +
+            "</select>";
+        clauses.forEach((c, k) => {
+            const kind = (catalogue[c.field] || {}).kind;
+            const fieldList = fields.includes(c.field) ? fields : fields.concat([c.field]);
+            html += "<div class='clause' data-k='" + k + "'>";
+            if (k > 0) html += "<span class='joiner'>" + (m.mode === "all" ? "and" : "or") + "</span>";
+            html += "<select data-field>" + fieldList.map((f) => {
+                const cat = catalogue[f];
+                const note = !cat ? " (not in any answer set)" : !cat.varies ? " (same in every set)" :
+                    cat.missing ? " (in " + cat.seen + " of " + cat.of + ")" : "";
+                return "<option value='" + esc(f) + "'" + (f === c.field ? " selected" : "") + ">" + esc(f + note) + "</option>";
+            }).join("") + "</select>";
+            html += "<select data-op>" + OPS.map((o) => "<option value='" + o[0] + "'" + (o[0] === c.op ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select>";
+            if (c.op === "in" || c.op === "not_in") {
+                const chosen = (Array.isArray(c.value) ? c.value : [c.value]).map((v) => JSON.stringify(v));
+                html += "<div class='checks'>" + valueOptions(c.field).map((v) =>
+                    "<label><input type='checkbox' data-multi value='" + esc(JSON.stringify(v)) + "'" +
+                    (chosen.includes(JSON.stringify(v)) ? " checked" : "") + ">" + esc(show(v)) + "</label>").join("") + "</div>";
+            } else if (c.op === "eq" || c.op === "ne") {
+                const vals = valueOptions(c.field, c.value);
+                if (kind === "date" || !vals.length) {
+                    html += "<input type='text' data-text value='" + esc(c.value == null ? "" : c.value) + "' placeholder='value'>";
+                } else {
+                    html += "<select data-value>" + vals.map((v) =>
+                        "<option value='" + esc(JSON.stringify(v)) + "'" + (JSON.stringify(v) === JSON.stringify(c.value) ? " selected" : "") + ">" + esc(show(v)) + "</option>").join("") + "</select>";
+                }
+            }
+            html += "<div style='text-align:right'><button class='link' data-delclause>Remove condition</button></div></div>";
+        });
+        html += "<div class='actions'><button class='link' data-addclause>+ Add a condition</button>" +
+            "<button data-done>Done</button></div></div>";
+        return html;
+    }
+
+    // Every edit goes model -> rules.json condition -> re-render, so what is
+    // on screen is always exactly what would be saved.
+    function updateCond(i, fn) {
+        const row = deck[i];
+        const m = parseCond(row.when);
+        if (m.mode === "custom") return;
+        fn(m);
+        row.when = toCond(m);
+        setDirty(true);
+        renderRules();
+    }
+
+    function wireRules() {
+        const list = $("rules");
+        list.addEventListener("click", (e) => {
+            const t = e.target;
+            const li = t.closest(".rule");
+            if (!li) return;
+            const i = +li.dataset.i;
+            if (t.dataset.edit !== undefined) {
+                if (parseCond(deck[i].when).mode === "custom") {
+                    status("info", "Custom rule", "This condition uses not or nested groups. It is kept exactly as is; edit it in the author console.");
+                    return;
+                }
+                editing = editing === deck[i].id ? null : deck[i].id;
+                renderRules();
+            } else if (t.dataset.remove !== undefined) {
+                if (editing === deck[i].id) editing = null;
+                deck.splice(i, 1);
+                setDirty(true);
+                renderRules();
+            } else if (t.dataset.addclause !== undefined) {
+                updateCond(i, (m) => { if (m.mode === "always") m.mode = "all"; m.clauses.push(defaultClause()); });
+            } else if (t.dataset.delclause !== undefined) {
+                const k = +t.closest(".clause").dataset.k;
+                updateCond(i, (m) => m.clauses.splice(k, 1));
+            } else if (t.dataset.done !== undefined) {
+                editing = null;
+                renderRules();
+            }
+        });
+        list.addEventListener("change", (e) => {
+            const t = e.target;
+            const li = t.closest(".rule");
+            if (!li) return;
+            const i = +li.dataset.i;
+            const cl = t.closest(".clause");
+            const k = cl ? +cl.dataset.k : -1;
+            if (t.dataset.mode !== undefined) {
+                updateCond(i, (m) => {
+                    m.mode = t.value;
+                    if (m.mode === "always") m.clauses = [];
+                    else if (!m.clauses.length) m.clauses.push(defaultClause());
+                });
+            } else if (t.dataset.field !== undefined) {
+                updateCond(i, (m) => {
+                    const vals = (catalogue[t.value] || {}).values || [];
+                    m.clauses[k] = { field: t.value, op: "eq", value: vals.length ? vals[vals.length - 1] : "" };
+                });
+            } else if (t.dataset.op !== undefined) {
+                updateCond(i, (m) => {
+                    const c = m.clauses[k];
+                    const first = Array.isArray(c.value) ? c.value[0] : c.value;
+                    c.op = t.value;
+                    if (c.op === "in" || c.op === "not_in") c.value = first === undefined ? [] : [first];
+                    else if (c.op === "eq" || c.op === "ne") c.value = first === undefined ? "" : first;
+                    else delete c.value;
+                });
+            } else if (t.dataset.value !== undefined) {
+                updateCond(i, (m) => m.clauses[k].value = JSON.parse(t.value));
+            } else if (t.dataset.text !== undefined) {
+                updateCond(i, (m) => m.clauses[k].value = t.value);
+            } else if (t.dataset.multi !== undefined) {
+                const picked = [...cl.querySelectorAll("input[data-multi]:checked")].map((x) => JSON.parse(x.value));
+                updateCond(i, (m) => m.clauses[k].value = picked);
+            }
+        });
+
+        // Drag to reorder: the order on screen is the deck order.
+        list.addEventListener("dragstart", (e) => {
+            const li = e.target.closest(".rule");
+            if (!li || e.target.closest(".editor")) { e.preventDefault(); return; }
+            dragFrom = +li.dataset.i;
+            li.classList.add("drag");
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", String(dragFrom));
+        });
+        list.addEventListener("dragover", (e) => {
+            const li = e.target.closest(".rule");
+            if (!li || dragFrom === null) return;
+            e.preventDefault();
+            list.querySelectorAll(".over").forEach((x) => x.classList.remove("over"));
+            li.classList.add("over");
+        });
+        list.addEventListener("drop", (e) => {
+            const li = e.target.closest(".rule");
+            if (!li || dragFrom === null) return;
+            e.preventDefault();
+            const to = +li.dataset.i;
+            if (to !== dragFrom) {
+                const [moved] = deck.splice(dragFrom, 1);
+                deck.splice(to, 0, moved);
+                setDirty(true);
+            }
+            dragFrom = null;
+            renderRules();
+        });
+        list.addEventListener("dragend", () => { dragFrom = null; renderRules(); });
+
+        $("spare").addEventListener("click", (e) => {
+            const id = e.target.dataset.add;
+            if (!id) return;
+            deck.push({ id: id, when: null });
+            setDirty(true);
+            renderRules();
+            status("info", "Added " + id, "It is at the end of the deck, always included. Drag it into place.");
+        });
+    }
+
+    // A local evaluation of the edited rules, mirroring engine/rules.py, so
+    // an author sees the effect before saving. Variants swap content, not
+    // selection, so they do not change which rows appear.
+    function norm(v) { return String(v == null ? "" : v).trim().toLowerCase(); }
+    function holds(cond, answers) {
+        if (cond == null || cond === "always" || (typeof cond === "object" && !Object.keys(cond).length)) return true;
+        if (cond === "never") return false;
+        if (cond.all) return cond.all.every((c) => holds(c, answers));
+        if (cond.any) return cond.any.some((c) => holds(c, answers));
+        if (cond.not) return !holds(cond.not, answers);
+        const actual = answers[cond.field];
+        if ("exists" in cond) return (actual != null && actual !== "") === !!cond.exists;
+        if ("eq" in cond) return norm(actual) === norm(cond.eq);
+        if ("ne" in cond) return norm(actual) !== norm(cond.ne);
+        if ("in" in cond) return cond.in.some((v) => norm(actual) === norm(v));
+        if ("not_in" in cond) return !cond.not_in.some((v) => norm(actual) === norm(v));
+        return true;
+    }
+
+    function tryRules() {
+        const p = payloads[$("try").value];
+        if (!p) { $("tryout").innerHTML = ""; return; }
+        const inc = deck.filter((r) => holds(r.when, p.answers || {}));
+        $("tryout").innerHTML = "<span class='chip'><b>" + inc.length + " of " + deck.length + "</b>slides</span>" +
+            deck.map((r) => "<span class='chip" + (inc.includes(r) ? "" : " no") + "'>" + esc(r.id) + "</span>").join("");
+    }
+
+    // ------------------------------------------------------ placeholders
+    // Bindings: {from: field, field, format?} | {from: literal, value} |
+    // {from: data, source, key}. Same shapes as engine/bindings.py.
+    let editingPh = null;
+    const FORMATS = [["", "as answered"], ["upper", "UPPER CASE"], ["lower", "lower case"], ["title", "Title Case"],
+                     ["long_comma", "November 30, 2026"], ["day_month", "30 November 2026"], ["abbr_comma", "Nov 30, 2026"],
+                     ["day_abbr", "30 Nov 2026"], ["us_slash", "11/30/2026"], ["eu_slash", "30/11/2026"], ["iso", "2026-11-30"]];
+
+    function bindingText(b) {
+        if (!b) return "Not bound";
+        if (b.from === "literal") return "Fixed text: “" + b.value + "”";
+        if (b.from === "data") return "Data: " + b.source + " › " + b.key;
+        const fmt = FORMATS.find((f) => f[0] === (b.format || ""));
+        return "Answer: " + b.field + (b.format ? " (" + (fmt ? fmt[1] : b.format) + ")" : "");
+    }
+    function bindingBad(b) {
+        if (!b) return true;
+        if (b.from === "field" || !b.from) return !(b.field in catalogue);
+        if (b.from === "literal") return b.value == null || b.value === "";
+        return !b.source || !b.key;
+    }
+
+    function renderPlaceholders() {
+        if (!library) return;
+        const names = new Set((library.placeholders || []).concat(Object.keys(bindings).map((k) => k.replace(/[{}\s]/g, ""))));
+        const rows = [...names].sort().map((name) => {
+            const key = "{{" + name + "}}";
+            const b = bindings[key];
+            const on = (library.blocks || []).filter((x) => (x.placeholders || []).includes(name)).map((x) => x.id);
+            return "<div class='ph' data-name='" + esc(name) + "'>" +
+                "<div class='row'><span class='name'>{{" + esc(name) + "}}</span>" +
+                (b ? "<button class='icon' title='Remove binding' data-unbind>✕</button>" : "") + "</div>" +
+                "<div class='where'>" + (on.length ? "on " + esc(on.join(", ")) : "not on any library slide yet") + "</div>" +
+                "<span class='src" + (bindingBad(b) ? " bad" : "") + "' data-editph>" + esc(bindingText(b)) + "</span>" +
+                (editingPh === name ? phEditor(name, b) : "") + "</div>";
+        });
+        $("phs").innerHTML = rows.join("") || "<p class='empty'>No placeholders in this library yet.</p>";
+        renderPhPick();
+    }
+
+    function phEditor(name, b) {
+        b = b || { from: "field", field: catalogue[name] ? name : "" };
+        const from = b.from || "field";
+        let html = "<div class='editor'><label>Value comes from</label><select data-from>" +
+            [["field", "An answer"], ["literal", "Fixed text"], ["data", "A data source"]].map((o) =>
+                "<option value='" + o[0] + "'" + (o[0] === from ? " selected" : "") + ">" + o[1] + "</option>").join("") + "</select>";
+        if (from === "field") {
+            const fields = Object.keys(catalogue);
+            if (b.field && !fields.includes(b.field)) fields.push(b.field);
+            html += "<div class='grid2' style='margin-top:6px'><div><label>Answer</label><select data-bfield>" +
+                "<option value=''>Choose...</option>" + fields.map((f) =>
+                    "<option value='" + esc(f) + "'" + (f === b.field ? " selected" : "") + ">" + esc(f) + "</option>").join("") +
+                "</select></div><div><label>Shown as</label><select data-bformat>" + FORMATS.map((f) =>
+                    "<option value='" + f[0] + "'" + (f[0] === (b.format || "") ? " selected" : "") + ">" + esc(f[1]) + "</option>").join("") +
+                "</select></div></div>";
+            const eg = b.field && catalogue[b.field] ? catalogue[b.field].eg : null;
+            if (eg != null) html += "<p class='hint'>e.g. " + esc(show(eg)) + "</p>";
+        } else if (from === "literal") {
+            html += "<label style='margin-top:6px'>Text</label><input type='text' data-bvalue value='" + esc(b.value || "") + "'>";
+        } else {
+            html += "<div class='grid2' style='margin-top:6px'><div><label>Source</label><input type='text' data-bsource value='" + esc(b.source || "") + "' placeholder='finance'></div>" +
+                "<div><label>Key</label><input type='text' data-bkey value='" + esc(b.key || "") + "' placeholder='total'></div></div>";
+        }
+        return html + "<div class='actions'><span></span><button data-phdone>Done</button></div></div>";
+    }
+
+    function setBinding(name, fn) {
+        const key = "{{" + name + "}}";
+        const b = clone(bindings[key] || { from: "field", field: catalogue[name] ? name : "" });
+        fn(b);
+        bindings[key] = b;
+        setDirty(true);
+        renderPlaceholders();
+    }
+
+    function wirePlaceholders() {
+        const box = $("phs");
+        box.addEventListener("click", (e) => {
+            const t = e.target;
+            const row = t.closest(".ph");
+            if (!row) return;
+            const name = row.dataset.name;
+            if (t.dataset.editph !== undefined) {
+                editingPh = editingPh === name ? null : name;
+                renderPlaceholders();
+            } else if (t.dataset.phdone !== undefined) {
+                editingPh = null;
+                renderPlaceholders();
+            } else if (t.dataset.unbind !== undefined) {
+                delete bindings["{{" + name + "}}"];
+                setDirty(true);
+                renderPlaceholders();
+            }
+        });
+        box.addEventListener("change", (e) => {
+            const t = e.target;
+            const row = t.closest(".ph");
+            if (!row) return;
+            const name = row.dataset.name;
+            if (t.dataset.from !== undefined) {
+                setBinding(name, (b) => {
+                    const from = t.value;
+                    for (const k of Object.keys(b)) delete b[k];
+                    b.from = from;
+                    if (from === "field") b.field = catalogue[name] ? name : "";
+                    if (from === "literal") b.value = "";
+                    if (from === "data") { b.source = ""; b.key = ""; }
+                });
+            } else if (t.dataset.bfield !== undefined) {
+                setBinding(name, (b) => b.field = t.value);
+            } else if (t.dataset.bformat !== undefined) {
+                setBinding(name, (b) => { if (t.value) b.format = t.value; else delete b.format; });
+            } else if (t.dataset.bvalue !== undefined) {
+                setBinding(name, (b) => b.value = t.value);
+            } else if (t.dataset.bsource !== undefined) {
+                setBinding(name, (b) => b.source = t.value.trim());
+            } else if (t.dataset.bkey !== undefined) {
+                setBinding(name, (b) => b.key = t.value.trim());
+            }
+        });
+    }
+
+    // Creating a placeholder is a text edit in the open deck: the selected
+    // words become {{Name}}. The binding is staged here at the same moment,
+    // because a token with no binding is a gap somebody has to find later.
+    // Names inserted into the open presentation that the library on the
+    // backend has not seen yet; cleared by "Update library from PowerPoint".
+    let pendingPh = new Set();
+
+    // One list: the library's placeholders first, then answers that could
+    // become one, then a way to add any new name.
+    function renderPhPick() {
+        const keep = $("phpick").value;
+        const existing = [...new Set((library.placeholders || [])
+            .concat(Object.keys(bindings).map((k) => k.replace(/[{}\s]/g, "")))
+            .concat([...pendingPh]))].sort();
+        const answers = Object.keys(catalogue).filter((f) => !existing.includes(f)).sort();
+        $("phpick").innerHTML =
+            (existing.length ? "<optgroup label='Placeholders in this library'>" +
+                existing.map((n) => "<option value='" + esc(n) + "'>{{" + esc(n) + "}}</option>").join("") + "</optgroup>" : "") +
+            (answers.length ? "<optgroup label='From an answer'>" +
+                answers.map((n) => "<option value='" + esc(n) + "'>{{" + esc(n) + "}}</option>").join("") + "</optgroup>" : "") +
+            "<option value='__new'>+ New placeholder…</option>";
+        if ([...$("phpick").options].some((o) => o.value === keep)) $("phpick").value = keep;
+        $("phnew").style.display = $("phpick").value === "__new" ? "block" : "none";
+        $("phpending").style.display = pendingPh.size ? "block" : "none";
+        $("phpending").textContent = "Inserted in PowerPoint, not in the library yet: " +
+            [...pendingPh].map((n) => "{{" + n + "}}").join(", ") + ". Press Update library from PowerPoint.";
+    }
+
+    async function insertPlaceholder() {
+        const picked = $("phpick").value;
+        const name = (picked === "__new" ? $("phname").value : picked).trim().replace(/[{}]/g, "");
+        if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) {
+            status("err", "Not a placeholder name", "Use letters, digits and underscores, starting with a letter, e.g. ClientName.");
+            return;
+        }
+        const selected = await new Promise((resolve) =>
+            Office.context.document.getSelectedDataAsync(Office.CoercionType.Text, (r) =>
+                resolve(r.status === Office.AsyncResultStatus.Succeeded ? r.value : "")));
+        if (!selected) {
+            status("err", "Select some text first", "Click into a text box on a slide and highlight the words the placeholder replaces.");
+            return;
+        }
+        await new Promise((resolve, reject) =>
+            Office.context.document.setSelectedDataAsync("{{" + name + "}}", { coercionType: Office.CoercionType.Text }, (r) =>
+                r.status === Office.AsyncResultStatus.Succeeded ? resolve() : reject(r.error)));
+        const key = "{{" + name + "}}";
+        if (!bindings[key]) {
+            bindings[key] = catalogue[name] ? { from: "field", field: name } : { from: "literal", value: selected };
+            setDirty(true);
+        }
+        if (!(library.placeholders || []).includes(name)) pendingPh.add(name);
+        editingPh = name;
+        $("phname").value = "";
+        renderPlaceholders();
+        $("phpick").value = name;
+        renderPhPick();
+        status("ok", "Placeholder {{" + name + "}} inserted",
+            "Replaced “" + esc(selected.slice(0, 80)) + "”. " +
+            (catalogue[name] ? "Bound to the answer " + esc(name) + "." :
+                "No answer is called " + esc(name) + ", so it is bound to the original text for now; pick its source below.") +
+            "<br><span class='hint'>When you've finished marking, press Update library from PowerPoint.</span>");
+    }
+
+    // The open presentation becomes the library's deck (re-import with
+    // overwrite: block ids are carried by title, rules kept), then the
+    // bindings edited here are saved against it. Import first, because a
+    // binding check against the old deck would not know the new tokens.
+    async function publishFromPowerPoint() {
+        if (!confirm("Replace the deck of library " + LIB + " with the presentation open in PowerPoint? Its rules are kept, and the previous rules are backed up.")) return;
+        busy("phpublish", true);
+        status("info", "Updating " + LIB + " from PowerPoint...", "Reading the open presentation.");
+        const blob = await openDeckAsBlob();
+        const form = new FormData();
+        form.append("file", blob, LIB + ".pptx");
+        form.append("name", LIB);
+        form.append("description", (library.library && library.library.description) || "");
+        form.append("overwrite", "true");
+        const res = await fetch("/api/libraries", { method: "POST", body: form });
+        if (!res.ok) {
+            let msg = await res.text();
+            try { msg = JSON.parse(msg).detail || msg; } catch (e) { /* not JSON */ }
+            throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
+        const r = (await res.json()).imported || {};
+        const c = r.carried || {};
+        const out = await (await api("/api/libraries/" + LIB + "/rules", { deck: deck, placeholders: bindings }, "PUT")).json();
+        pendingPh = new Set();
+        const notes = [];
+        if ((c.unmatched || []).length) notes.push("New slides, in no rule yet: " + c.unmatched.join(", "));
+        if ((c.vanished || []).length) notes.push("Slides gone: " + c.vanished.join(", "));
+        status("ok", "Library " + LIB + " updated",
+            r.slides + " slides, " + (r.placeholders || []).length + " placeholders: " + esc((r.placeholders || []).join(", ")) +
+            (notes.length ? "<pre>" + esc(notes.join("\n")) + "</pre>" : "") +
+            (out.backup ? "<br><span class='hint'>Previous rules kept as " + esc(out.backup) + "</span>" : ""));
+        await loadLibrary();
+    }
+
+    // --------------------------------------------------------- questions
+    // One field catalogue feeds everything: the build preview, the rule
+    // editor and the placeholder sources. Whenever it changes, all of them
+    // are redrawn from it, so they can never disagree about a field.
+    function applyFields(fields) {
+        catalogue = fields.fields || {};
+        payloads = fields.payloads || [];
+        const keep = $("payload").value, keepTry = $("try").value;
+        const opts = payloads.map((p, i) => "<option value='" + i + "'>" + esc(p.label.replace(/_/g, " ")) + "</option>").join("");
+        $("payload").innerHTML = opts || "<option>No answer sets</option>";
+        $("try").innerHTML = opts || "<option>No answer sets</option>";
+        if (payloads[keep]) $("payload").value = keep;
+        if (payloads[keepTry]) $("try").value = keepTry;
+        $("fieldnames").innerHTML = Object.keys(catalogue).map((f) => "<option value='" + esc(f) + "'>").join("");
+        showAnswers();
+        renderQuestions();
+        if (library) { renderRules(); renderPlaceholders(); }
+    }
+
+    function renderQuestions() {
+        $("qsets").innerHTML = payloads.map((p) =>
+            "<li><div class='main' style='min-width:0'><b>" + esc(p.label) + "</b> <span class='hint'>" +
+            Object.keys(p.answers || {}).length + " answers</span></div>" +
+            "<button class='icon' title='Delete this answer set' data-delset='" + esc(p.label) + "'>✕</button></li>").join("") ||
+            "<li class='none'>No answer sets yet. Without them there are no questions to write rules against.</li>";
+        const names = Object.keys(catalogue).sort();
+        $("q-count").textContent = names.length + " questions · " + payloads.length + " answer sets";
+        $("qfields").innerHTML = names.map((f) => {
+            const c = catalogue[f];
+            const vals = (c.values || []);
+            const notes = [];
+            if (!c.varies) notes.push("<span class='badge' style='color:var(--warn)'>same in every set</span>");
+            if (c.missing) notes.push("<span class='badge'>in " + c.seen + " of " + c.of + "</span>");
+            return "<div class='ph'><div class='row'><span class='name'>" + esc(f) + "</span><span><span class='badge'>" + esc(c.kind) + "</span>" + notes.join("") + "</span></div>" +
+                "<div class='answers' style='margin:4px 0 0'>" +
+                (vals.length ? vals.slice(0, 10).map((v) => "<span class='chip'>" + esc(show(v)) + "</span>").join("") +
+                    (vals.length > 10 ? "<span class='chip'>+" + (vals.length - 10) + " more</span>" : "")
+                    : "<span class='hint'>e.g. " + esc(show(c.eg)) + "</span>") +
+                "</div></div>";
+        }).join("") || "<p class='empty'>No questions yet.</p>";
+    }
+
+    async function uploadAnswerSets(files) {
+        let last = null, done = [];
+        for (const file of files) {
+            let answers;
+            try { answers = JSON.parse(await file.text()); } catch (e) {
+                throw new Error(file.name + " is not valid JSON: " + e.message);
+            }
+            if (!answers || typeof answers !== "object" || Array.isArray(answers))
+                throw new Error(file.name + " must hold one JSON object of answers.");
+            last = await (await api("/api/libraries/" + LIB + "/payloads",
+                { name: file.name.replace(/\.json$/i, ""), answers: answers })).json();
+            done.push(last.saved + (last.replaced ? " (replaced)" : ""));
+        }
+        if (last) applyFields(last);
+        status("ok", "Answer sets saved", esc(done.join(", ")));
+    }
+
+    async function deleteAnswerSet(name) {
+        if (!confirm("Delete the answer set " + name + "? Its fields leave the questions unless another set has them.")) return;
+        const res = await fetch("/api/libraries/" + LIB + "/payloads/" + encodeURIComponent(name), { method: "DELETE" });
+        if (!res.ok) throw new Error((await res.text()).slice(0, 300));
+        applyFields(await res.json());
+        status("ok", "Deleted " + name, "");
+    }
+
+    function wireQuestions() {
+        $("q-files").onchange = () => {
+            const files = [...$("q-files").files];
+            uploadAnswerSets(files).catch(fail).finally(() => { $("q-files").value = ""; });
+        };
+        $("qsets").addEventListener("click", (e) => {
+            const n = e.target.dataset.delset;
+            if (n) deleteAnswerSet(n).catch(fail);
+        });
+    }
+
+    // ----------------------------------------------------------- library
+    let upFromDeck = null;     // Blob of the open presentation, if chosen
+
+    function renderLibSlides() {
+        const blocks = library.blocks || [];
+        $("lib-count").textContent = blocks.length + " slides · " + (library.placeholders || []).length + " placeholders";
+        $("libslides").innerHTML = blocks.map((b) =>
+            "<li><span class='n'>" + b.number + "</span><div class='main' style='min-width:0'>" +
+            "<span class='tag'>" + esc(b.id) + "</span> <span class='hint'>" + esc(b.title) + "</span>" +
+            (b.placeholders.length ? "<div>" + b.placeholders.map((p) => "<span class='chip'>{{" + esc(p) + "}}</span>").join(" ") + "</div>" : "") +
+            "</div></li>").join("");
+    }
+
+    // The whole open presentation as one Blob. getFileAsync hands it over in
+    // slices; Office allows one file handle at a time, so it is always closed.
+    function openDeckAsBlob() {
+        return new Promise((resolve, reject) => {
+            Office.context.document.getFileAsync(Office.FileType.Compressed, { sliceSize: 4 * 1024 * 1024 }, (r) => {
+                if (r.status !== Office.AsyncResultStatus.Succeeded) return reject(r.error);
+                const file = r.value;
+                const parts = [];
+                const next = (i) => {
+                    if (i === file.sliceCount) {
+                        file.closeAsync();
+                        return resolve(new Blob(parts, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }));
+                    }
+                    file.getSliceAsync(i, (s) => {
+                        if (s.status !== Office.AsyncResultStatus.Succeeded) { file.closeAsync(); return reject(s.error); }
+                        parts.push(new Uint8Array(s.value.data));
+                        next(i + 1);
+                    });
+                };
+                next(0);
+            });
+        });
+    }
+
+    async function importLibrary() {
+        const file = $("up-pptx").files[0];
+        const deckBlob = file || upFromDeck;
+        const name = $("up-name").value.trim();
+        if (!deckBlob) { status("err", "Choose a library", "Pick a .pptx, or use the presentation open in PowerPoint."); return; }
+        if (!/^[a-z0-9_]{1,64}$/.test(name)) {
+            status("err", "Not a library id", "Lower case letters, digits and underscores. It becomes the folder and the id every rule refers to, so choose it once.");
+            return;
+        }
+        const exists = [...$("lib").options].some((o) => o.value === name);
+        if (exists && !$("up-over").checked) {
+            status("err", "A library called " + name + " exists", "Tick Replace to update it (its rules are kept), or choose another id.");
+            return;
+        }
+        busy("up-go", true);
+        const form = new FormData();
+        form.append("file", deckBlob, file ? file.name : name + ".pptx");
+        form.append("name", name);
+        form.append("description", $("up-desc").value.trim());
+        form.append("overwrite", exists ? "true" : "false");
+        const res = await fetch("/api/libraries", { method: "POST", body: form });
+        if (!res.ok) {
+            let msg = await res.text();
+            try { msg = JSON.parse(msg).detail || msg; } catch (e) { /* not JSON */ }
+            throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+        }
+        const out = await res.json();
+        const r = out.imported || {};
+        const c = r.carried || {};
+        const lines = [
+            r.slides + " slides; ids from " + [r.ids_from_markers && r.ids_from_markers + " markers",
+                r.ids_from_titles && r.ids_from_titles + " titles", r.ids_from_position && r.ids_from_position + " positions"]
+                .filter(Boolean).join(", "),
+            (r.placeholders || []).length + " placeholders" + ((r.placeholders || []).length ? ": " + r.placeholders.join(", ") : ""),
+            r.rules_kept ? "Existing rules kept." : "Starter rules written: every slide, always included.",
+        ];
+        if (r.replaced && ((c.unmatched || []).length || (c.vanished || []).length))
+            lines.push("New slides (in no rule yet): " + ((c.unmatched || []).join(", ") || "none") +
+                ". Gone: " + ((c.vanished || []).join(", ") || "none") + ".");
+        if ((r.dangling || []).length) lines.push("Rules that now name nothing: " + r.dangling.join("; "));
+        $("up-report").innerHTML = "<div class='report'>" + lines.map((l) => "<div>• " + esc(l) + "</div>").join("") + "</div>";
+        status((r.dangling || []).length ? "err" : "ok", (r.replaced ? "Replaced " : "Imported ") + name, "Now selected. Set its rules next.");
+        $("up-pptx").value = ""; upFromDeck = null; $("up-source").textContent = "";
+        await loadLibraries(name);
+        // Imported from the open presentation: it is already on screen.
+        if (file && $("up-show").checked) await showLibrary(file);
+    }
+
+    // PowerPoint is the renderer: the library's slides go into the open
+    // presentation, each tagged with its block id, and what was open before
+    // is removed. Nothing else draws slides, so this is the true picture.
+    // The pane can only do this with the file in hand - the backend has no
+    // route that hands a library's .pptx back.
+    async function showLibrary(blob) {
+        status("info", "Opening the library's slides in PowerPoint...", "");
+        const ids = (library.blocks || []).slice().sort((a, b) => a.number - b.number).map((b) => b.id);
+        const base64 = toBase64(await blob.arrayBuffer());
+        const shown = await PowerPoint.run(async (context) => {
+            const before = context.presentation.slides;
+            before.load("items/id");
+            await context.sync();
+            const oldIds = new Set(before.items.map((s) => s.id));
+
+            context.presentation.insertSlidesFromBase64(base64,
+                { formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting });
+            await context.sync();
+
+            const after = context.presentation.slides;
+            after.load("items/id");
+            await context.sync();
+            const added = after.items.filter((s) => !oldIds.has(s.id));
+            added.forEach((s, i) => s.tags.add("BLOCK", ids[i] || "slide-" + (i + 1)));
+            // Remove the old slides only once the new ones are in, so a
+            // failed insert never leaves an empty presentation.
+            if (added.length) after.items.filter((s) => oldIds.has(s.id)).forEach((s) => s.delete());
+            await context.sync();
+            return added.length;
+        });
+        status(shown === ids.length ? "ok" : "err", "Library " + LIB + " is open in PowerPoint",
+            shown + " slides, each tagged with its block id." +
+            (shown === ids.length ? "" : " Expected " + ids.length + "; tags may be misaligned.") +
+            "<br><span class='hint'>Mark placeholders on the Placeholders tab, then press Update library from PowerPoint there.</span>");
+        await listSlides();
+    }
+
+    function wireLibrary() {
+        $("up-go").onclick = () => importLibrary().catch(fail).finally(() => busy("up-go", false));
+        $("up-open").onclick = async () => {
+            try {
+                status("info", "Reading the open presentation...", "");
+                upFromDeck = await openDeckAsBlob();
+                $("up-pptx").value = "";
+                $("up-source").textContent = "Using the open presentation (" + Math.round(upFromDeck.size / 1024) + " KB).";
+                status("ok", "Open presentation ready to import", "Give it a library id and press Import.");
+            } catch (err) { fail(err); }
+        };
+        $("up-pptx").onchange = () => {
+            upFromDeck = null;
+            const f = $("up-pptx").files[0];
+            $("up-source").textContent = "";
+            if (f && !$("up-name").value) $("up-name").value = f.name.replace(/\.pptx$/i, "").toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 64);
+        };
+    }
+
+    // --------------------------------------------------- developer checks
     async function sayHello() {
         const options = { coercionType: Office.CoercionType.Text };
         await new Promise((resolve, reject) =>
@@ -60,7 +1356,7 @@
         log("Inserted 'Hello world!' into the selection.");
     }
 
-    // 2. The plan stores each slide's block id as a slide tag, so it survives
+    // Each slide's block id is stored as a slide tag, so it survives
     // reordering and retitling. This proves a tag can be written and read back.
     async function tagSlide() {
         await PowerPoint.run(async (context) => {
@@ -81,7 +1377,7 @@
         });
     }
 
-    // 3. What the engine would read: every slide in order with its tags.
+    // What the engine would read: every slide in order with its block tag.
     async function listSlides() {
         await PowerPoint.run(async (context) => {
             const slides = context.presentation.slides;
@@ -92,19 +1388,137 @@
                 return s.tags;
             });
             await context.sync();
-            const lines = slides.items.map((s, i) => {
-                const tags = tagLists[i].items.map((t) => t.key + "=" + t.value).join(", ");
-                return "Slide " + (i + 1) + ": " + (tags || "(no tags)");
-            });
-            log(slides.items.length + " slide(s)\n" + lines.join("\n"));
+            $("blocks").innerHTML = slides.items.map((s, i) => {
+                const tags = tagLists[i].items;
+                const block = tags.find((t) => t.key.toUpperCase() === "BLOCK");
+                const other = tags.filter((t) => t !== block).map((t) => t.key + "=" + t.value);
+                return "<li><span class='n'>" + (i + 1) + "</span>" +
+                    (block ? "<span class='tag'>" + esc(block.value) + "</span>"
+                           : "<span class='none'>untagged</span>") +
+                    (other.length ? "<span class='none'>" + esc(other.join(", ")) + "</span>" : "") +
+                    "</li>";
+            }).join("");
+            $("blocks-empty").style.display = slides.items.length ? "none" : "block";
+            $("blocks-empty").textContent = "This deck has no slides.";
         });
     }
 
-    // 4. The built deck will open this way, filled, as the preview.
-    // With no argument it opens a blank presentation.
     async function newDeck() {
         await PowerPoint.createPresentation();
         log("Asked PowerPoint to open a new presentation.");
+    }
+
+    async function insertDeck() {
+        const file = $("deckfile").files[0];
+        if (!file) {
+            log("Choose a .pptx file first.");
+            return;
+        }
+        const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+        });
+        const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+
+        const added = await insertBase64(base64, (i) => "inserted-" + (i + 1));
+        log("Inserted " + added + " slide(s) from " + file.name +
+            "\nTagged BLOCK=inserted-1.." + added);
+        await listSlides();
+    }
+
+    // Inserts a .pptx (base64) after the selected slide, or at the end, then
+    // tags the new slides in order. New slides are found by comparing slide
+    // ids before and after; insertSlidesFromBase64 does not return them.
+    async function insertBase64(base64, blockFor) {
+        return PowerPoint.run(async (context) => {
+            const before = context.presentation.slides;
+            before.load("items/id");
+            const selected = context.presentation.getSelectedSlides();
+            selected.load("items/id");
+            await context.sync();
+            const oldIds = new Set(before.items.map((s) => s.id));
+            const options = { formatting: PowerPoint.InsertSlideFormatting.keepSourceFormatting };
+            if (selected.items.length > 0) options.targetSlideId = selected.items[0].id;
+
+            context.presentation.insertSlidesFromBase64(base64, options);
+            await context.sync();
+
+            const after = context.presentation.slides;
+            after.load("items/id");
+            await context.sync();
+            const added = after.items.filter((s) => !oldIds.has(s.id));
+            added.forEach((s, i) => s.tags.add("BLOCK", blockFor(i)));
+            await context.sync();
+            return added.length;
+        });
+    }
+
+    // ------------------------------------------------------------- build
+    // /select gives the block ids in deck order (the built file cannot:
+    // filled placeholders change titles), /build makes the deck, /download
+    // returns it. Same answers always give the same selection.
+    const KEY_FIELDS = ["FullClientName", "AuditType", "Industry", "City", "DueDate"];
+
+    // Payload dates are YYYYMMDD; show them the way the cover will.
+    function pretty(v) {
+        const m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(v));
+        if (!m) return v;
+        return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(undefined,
+            { day: "numeric", month: "short", year: "numeric" });
+    }
+
+    function showAnswers() {
+        const p = payloads[$("payload").value];
+        if (!p) { $("answers").innerHTML = ""; return; }
+        const a = p.answers || {};
+        const keys = KEY_FIELDS.filter((k) => k in a);
+        const flags = Object.keys(a).filter((k) => typeof a[k] === "boolean");
+        $("answers").innerHTML =
+            keys.map((k) => "<span class='chip' title='" + esc(k) + "'><b>" +
+                esc(k.replace(/([a-z])([A-Z])/g, "$1 $2")) + "</b>" + esc(pretty(a[k])) + "</span>").join("") +
+            flags.map((k) => "<span class='chip" + (a[k] ? "" : " no") + "'>" +
+                esc(k.replace(/_/g, " ")) + "</span>").join("");
+    }
+
+    function toBase64(buffer) {
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(binary);
+    }
+
+    async function buildAndInsert() {
+        const chosen = payloads[$("payload").value];
+        if (!chosen) {
+            status("err", "No answer set loaded", "Is the backend running on 127.0.0.1:8000?");
+            return;
+        }
+        if (dirty) status("info", "Building with the saved rules", "Your unsaved template changes are not used until you save.");
+        busy("build", true);
+        status("info", "Building " + chosen.label.replace(/_/g, " ") + "...", "Asking the backend for the deck.");
+        const body = { answers: chosen.answers };
+        const sel = await (await api("/api/libraries/" + LIB + "/select", body)).json();
+        const built = await (await api("/api/libraries/" + LIB + "/build", body)).json();
+        const pptx = await (await api(built.download)).arrayBuffer();
+        const blocks = sel.slides.map((s) => s.block);
+
+        status("info", "Inserting " + blocks.length + " slides...", "");
+        const added = await insertBase64(toBase64(pptx), (i) => blocks[i] || "unknown-" + (i + 1));
+
+        const notes = [];
+        if (added !== blocks.length)
+            notes.push("Expected " + blocks.length + " slides, got " + added + "; tags may be misaligned.");
+        if (built.unbound.length)
+            notes.push("Unbound placeholders: " + built.unbound.join(", "));
+        status(notes.length ? "err" : "ok",
+            added + " slides inserted",
+            esc(chosen.label.replace(/_/g, " ")) + " &middot; " + blocks.map(esc).join(" &rsaquo; ") +
+            (notes.length ? "<pre>" + esc(notes.join("\n")) + "</pre>" : ""));
+        await listSlides();
     }
 </script>
 

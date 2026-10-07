@@ -14,7 +14,8 @@
     "stop": "office-addin-debugging stop manifest.json",
     "validate": "office-addin-manifest validate manifest.json",
     "start:xml": "office-addin-debugging start manifest.xml",
-    "stop:xml": "office-addin-debugging stop manifest.xml"
+    "stop:xml": "office-addin-debugging stop manifest.xml",
+    "set-port": "node set-port.js"
   },
   "dependencies": {
     "core-js": "^3.36.0",
@@ -45,5 +46,5 @@
     "websocket-driver": ">=0.7.5",
     "@hono/node-server": ">=2.0.5"
   },
-  "description": "Hello-world PowerPoint add-in (unified JSON manifest)"
+  "description": "Pitchcraft: PowerPoint add-in for authoring proposal templates"
 }

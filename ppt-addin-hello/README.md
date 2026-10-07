@@ -1,4 +1,17 @@
-# ppt-addin-hello
+# Pitchcraft (ppt-addin-hello)
+
+Pitchcraft is a PowerPoint add-in for authoring proposal templates against the
+`ppt_gen_v3p1` backend. Its pane has five tabs: Library, Questions, Rules,
+Placeholders and Build. It grew out of the hello-world add-in described below;
+that test still lives under **Build › Developer checks**.
+
+- Office laptop setup and day-to-day running: [OFFICE_LAPTOP_SETUP.md](OFFICE_LAPTOP_SETUP.md)
+- Move the dev server to another port: `npm run set-port -- 3002`
+- The pane calls the backend through the dev server proxy (`/api`, `/download` to
+  `PB_BACKEND`, default `http://127.0.0.1:8000`).
+
+## The original hello world
+
 
 A hello-world PowerPoint add-in using the unified JSON manifest. It checks
 the four things the proposal builder add-in depends on:
