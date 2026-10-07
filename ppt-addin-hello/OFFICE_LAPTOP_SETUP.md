@@ -83,9 +83,12 @@ Check the icons came across (`dir ppt-addin-hello\assets` lists
 `icon-16/32/64/80.png`). If not, re-download them from the repo; do not generate
 placeholders.
 
-**Backend location.** The add-in expects `ppt_gen_v3p1` running on this machine.
-If the repo has a `ppt_gen_v3p1` folder, use it. If not, ask the user where to
-get it (it may be copied over separately), and put it next to `ppt-addin-hello`.
+**Backend location.** The backend is **not** in this repo; it is already on
+this laptop (typically `...\Templfy\proposal_builder\ppt_gen_v3p1`). Ask the
+user for the path if unsure. Do not copy it into this repo. Before relying on
+it, check it has the routes the pane calls (step 4 lists the checks). An older
+copy (`ppt_gen_v3`) has the same API apart from Graph rendering, which is not
+used.
 
 ## 3. Install the add-in and set its port
 
@@ -106,10 +109,11 @@ the user for the company proxy and registry, then `npm config set proxy …`,
 
 ## 4. Run the backend (no Graph, no PDF)
 
-In a second terminal:
+In a second terminal, in the backend folder already on this laptop (if it
+already has a working `.venv`, just activate it and skip the `venv`/`pip` lines):
 
 ```
-cd ppt_gen_v3p1
+cd <path-to>\ppt_gen_v3p1
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -126,7 +130,12 @@ uvicorn app:app --host 127.0.0.1 --port 8000
   `curl http://127.0.0.1:8000/api/renderers` must show `graph` with
   `"available": false`.
 - Check it serves the demo library: `curl http://127.0.0.1:8000/api/libraries`
-  lists `demo`.
+  lists `demo`, and `curl http://127.0.0.1:8000/api/libraries/demo/fields`
+  returns `fields` and `payloads`. If either route 404s, the copy is too old:
+  stop and tell the user.
+- If the office copy has a `.env` with Graph settings, leave the file alone; the
+  `set GRAPH_DRIVE_ID=` line above switches Graph off for this run, since a
+  variable already set wins over `.env`.
 - If port 8000 is taken, pick another (e.g. 8010) for uvicorn, and before
   starting the add-in run `set PB_BACKEND=http://127.0.0.1:8010` in the add-in
   terminal. The dev server proxies `/api` and `/download` to `PB_BACKEND`.
@@ -167,7 +176,7 @@ Use the synthetic `demo` library.
    becomes `{{Name}}` and an orange "not in the library yet" note appears. Do
    **not** press Update library on `demo`.
 5. **Library**: to test import without touching `demo`, import
-   `ppt_gen_v3p1/fixtures/master.pptx` as a new id (e.g. `office_test`) with
+   `<backend>\fixtures\master.pptx` as a new id (e.g. `office_test`) with
    "Show the library's slides" ticked. Its slides replace the open deck's.
 6. **Update library from PowerPoint** on `office_test`: mark one placeholder,
    press it, confirm. The report lists the new placeholder.
@@ -201,5 +210,6 @@ the backend terminal.
   proxy to the backend (`PB_BACKEND`).
 - `ppt-addin-hello/manifest.xml` is the ribbon group "Pitchcraft" (used here);
   `manifest.json` is the Microsoft 365 route.
-- `ppt_gen_v3p1/app.py` is every API route the pane calls (thin; logic in
-  `engine/`). Read `ppt_gen_v3p1/CLAUDE.md` before touching it.
+- The backend (outside this repo, on this laptop): `app.py` holds every API route
+  the pane calls (thin; logic in `engine/`). Read its `CLAUDE.md` before touching
+  it.
