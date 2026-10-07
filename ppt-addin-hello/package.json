@@ -12,7 +12,9 @@
     "dev-server": "webpack serve --mode development",
     "start": "office-addin-debugging start manifest.json",
     "stop": "office-addin-debugging stop manifest.json",
-    "validate": "office-addin-manifest validate manifest.json"
+    "validate": "office-addin-manifest validate manifest.json",
+    "start:xml": "office-addin-debugging start manifest.xml",
+    "stop:xml": "office-addin-debugging stop manifest.xml"
   },
   "dependencies": {
     "core-js": "^3.36.0",

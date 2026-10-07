@@ -25,6 +25,20 @@ Choose **Open pane**.
 
 When finished, close PowerPoint and run `npm stop`.
 
+### Perpetual Office (2021, 2024): use the XML manifest
+
+Perpetual Office cannot load the JSON manifest (sideloading fails with a 401,
+because it needs a Microsoft 365 account). `manifest.xml` describes the same
+pane in the older format:
+
+```
+npm run start:xml
+```
+
+and `npm run stop:xml` when finished. The pane reports which PowerPoint API
+versions this copy of PowerPoint supports, which matters here: perpetual
+Office may lack the versions the tag buttons need.
+
 ## What to check
 
 - The pane opens and shows `PowerPointApi support` with 1.3 and 1.5 as `yes`.
