@@ -45,11 +45,30 @@ If `git clone` fails (proxy/GitHub blocked), ask the user to download the repo
 as a ZIP from GitHub, or copy the `ppt-addin-hello` folder over from the
 personal laptop.
 
+Check that the icons came across with the code (a corporate filter or a
+partial copy can drop them; the ribbon needs them):
+
+```
+dir assets
+```
+
+It must list `icon-16.png`, `icon-32.png`, `icon-64.png` and `icon-80.png`. If not,
+re-download them from the repo rather than generating placeholders.
+
 ## 3. Install
 
 ```
 npm install
 ```
+
+If it fails building a native module (for example `keytar`, often because it
+can't reach nodejs.org for headers), retry with:
+
+```
+npm install --ignore-scripts
+```
+
+That's fine for this test.
 
 If it fails with network/proxy errors (ECONNRESET, ETIMEDOUT, self-signed
 certificate in chain), ask the user for the company proxy and registry, then:
@@ -82,7 +101,15 @@ npm start
 | `401`, `Unable to sideload`, `atk install` error, "custom app upload disabled" | Tenant blocks sideloading custom apps, or not signed in | Run `npm stop`, then use step 5 (XML) |
 | PowerPoint version below 2501 | Too old for JSON manifest | Use step 5 (XML) |
 | Certificate install blocked / access denied | IT policy blocks the dev cert | Stop; user must ask IT |
-| `EADDRINUSE` port 3000 | Something already on 3000 | Find and close it, or ask the user |
+| `Get ServiceUrl failed`, `ETIMEDOUT` to `titles.prod.mos.microsoft.com` | Company firewall blocks Microsoft's add-in service | Use step 5 (XML); a JSON route needs an IT firewall exception for that host |
+| `EADDRINUSE` port 3000 | Something already on 3000 (corporate agents such as AMAgent can hold it) | Switch port, see below |
+
+### Switching the port
+
+If port 3000 is taken, pick a free one (for example 3002) and change it in all of:
+- `package.json`: `config.dev_server_port`
+- `webpack.config.js`: `urlDev`
+- `manifest.xml` and `manifest.json`: every `https://localhost:3000`
 
 ## 5. Fallback — XML manifest
 
